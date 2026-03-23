@@ -114,4 +114,3 @@ Always suggest different products each time. Different categories. Realistic Sau
     return NextResponse.json({ error: "Search failed — " + msg.slice(0, 200) }, { status: 500 });
   }
 }
-
