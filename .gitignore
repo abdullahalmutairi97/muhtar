@@ -40,7 +40,6 @@ yarn-error.log*
 CLAUDE.md
 AGENTS.md
 .claude/
-muhtar-code-bundle.md
 
 # vercel
 .vercel
