@@ -78,7 +78,18 @@ export default function SignInPage() {
       });
       const data = await res.json();
       if (!res.ok) { setErr(data.error ?? "Invalid code"); return; }
-      setStep("name");
+      if (data.isNew) {
+        setStep("name");
+      } else {
+        // Returning user — log them in directly
+        const loginRes = await fetch("/api/auth/create-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: phone.replace(/\D/g, "") }),
+        });
+        if (loginRes.ok) { router.push("/gifts"); return; }
+        setStep("name");
+      }
     } catch {
       setErr("Network error — try again");
     } finally {
@@ -216,7 +227,7 @@ export default function SignInPage() {
                 <div className="m-label">Your name</div>
                 <input
                   className="m-input"
-                  placeholder="e.g. Noura"
+                  placeholder="Your name"
                   value={name}
                   autoFocus
                   onChange={(e) => setName(e.target.value)}
@@ -242,3 +253,5 @@ export default function SignInPage() {
     </div>
   );
 }
+
+
