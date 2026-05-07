@@ -54,56 +54,6 @@ hooks/                # useAuth, useCredits, useSearchHistory
 utils/                # Formatting and deduplication helpers
 types/                # Shared TypeScript interfaces
 ```
-
----
-
-## Running Locally
-
-**Prerequisites:** Node.js 18+, a Supabase project, a Google Gemini API key.
-
-1. Clone the repo and install dependencies:
-   ```bash
-   npm install
-   ```
-
-2. Create a `.env.local` file:
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   GEMINI_API_KEY=your_gemini_api_key
-   SESSION_SECRET=any_random_32_char_string
-   ```
-
-3. Create the required tables in Supabase SQL Editor:
-   ```sql
-   create table users (
-     id uuid primary key default gen_random_uuid(),
-     phone text unique not null,
-     name text not null,
-     credits integer not null default 100,
-     created_at timestamptz default now()
-   );
-
-   create table search_history (
-     id uuid primary key default gen_random_uuid(),
-     user_id uuid references users(id) on delete cascade,
-     type text not null,
-     query jsonb,
-     results jsonb,
-     created_at timestamptz default now()
-   );
-
-   alter table users disable row level security;
-   alter table search_history disable row level security;
-   ```
-
-4. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-5. Open [http://localhost:3000](http://localhost:3000). Use OTP code `1234` to sign in (demo mode).
-
 ---
 
 ## Authentication
