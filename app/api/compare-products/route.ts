@@ -3,7 +3,6 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const STORE_URLS: Record<string, (q: string) => string> = {
   "Amazon.sa": (q) => `https://www.amazon.sa/s?k=${encodeURIComponent(q)}&language=en_AE`,
-  "Noon.com":  (q) => `https://www.noon.com/saudi-en/search/?q=${encodeURIComponent(q)}`,
 };
 
 export async function POST(req: NextRequest) {
@@ -45,7 +44,7 @@ IMPORTANT: Respond with ONLY a raw JSON object. No markdown, no code fences.
       "brand": "brand name",
       "price": 199,
       "searchQuery": "short search query",
-      "store": "Noon.com",
+      "store": "Amazon.sa",
       "pros": ["pro 1", "pro 2", "pro 3"],
       "cons": ["con 1", "con 2"],
       "inStock": true

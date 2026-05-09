@@ -28,20 +28,6 @@ async function resolveAmazon(query: string): Promise<{ url: string; imageUrl: st
   }
 }
 
-async function fetchImage(query: string): Promise<string> {
-  if (!process.env.UNSPLASH_ACCESS_KEY) return "";
-  try {
-    const res = await fetch(
-      `https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&orientation=squarish&client_id=${process.env.UNSPLASH_ACCESS_KEY}`,
-      { signal: AbortSignal.timeout(3000) }
-    );
-    if (!res.ok) return "";
-    const data = await res.json() as { urls?: { small?: string } };
-    return data.urls?.small ?? "";
-  } catch {
-    return "";
-  }
-}
 
 export async function POST(req: NextRequest) {
   if (!process.env.GEMINI_API_KEY) {
@@ -90,8 +76,7 @@ Always suggest different products each time. Different categories. Realistic Sau
         const { url, imageUrl } = await resolveAmazon(query);
         return { url, imageUrl };
       } else {
-        const url = `https://www.noon.com/saudi-en/search/?q=${encodeURIComponent(query)}`;
-        const imageUrl = await fetchImage(query);
+        const { url, imageUrl } = await resolveAmazon(query);
         return { url, imageUrl };
       }
     }));
