@@ -5,6 +5,21 @@ import type { GiftResult } from "@/types";
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
+async function fetchUnsplashImage(query: string): Promise<string> {
+  if (!process.env.UNSPLASH_ACCESS_KEY) return "";
+  try {
+    const res = await fetch(
+      `https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&orientation=squarish&client_id=${process.env.UNSPLASH_ACCESS_KEY}`,
+      { signal: AbortSignal.timeout(3000) }
+    );
+    if (!res.ok) return "";
+    const data = await res.json() as { urls?: { small?: string } };
+    return data.urls?.small ?? "";
+  } catch {
+    return "";
+  }
+}
+
 async function resolveAmazon(query: string): Promise<{ url: string; imageUrl: string }> {
   const fallback = `https://www.amazon.sa/s?k=${encodeURIComponent(query)}&language=en_AE`;
   try {
@@ -14,17 +29,15 @@ async function resolveAmazon(query: string): Promise<{ url: string; imageUrl: st
     );
     const html = await res.text();
 
-    // Extract first product URL
     const dpMatch = html.match(/href="(\/[^"]*\/dp\/[A-Z0-9]{10}[^"]*?)"/);
     const productUrl = dpMatch ? `https://www.amazon.sa${dpMatch[1].split('"')[0]}` : fallback;
 
-    // Extract first product image
     const imgMatch = html.match(/https:\/\/m\.media-amazon\.com\/images\/I\/[A-Za-z0-9%._-]+\.jpg/);
-    const imageUrl = imgMatch ? imgMatch[0] : "";
+    const imageUrl = imgMatch ? imgMatch[0] : await fetchUnsplashImage(query);
 
     return { url: productUrl, imageUrl };
   } catch {
-    return { url: fallback, imageUrl: "" };
+    return { url: fallback, imageUrl: await fetchUnsplashImage(query) };
   }
 }
 
