@@ -66,7 +66,7 @@ Each item must have these exact fields:
 - name: real brand + product name
 - price: realistic SAR price (number)
 - currency: "SAR"
-- store: "Amazon.sa" or "Noon.com" — mix them
+- store: "Amazon.sa"
 - searchQuery: short English search query (e.g. "Sony WH-1000XM5 headphones")
 - inStock: true
 

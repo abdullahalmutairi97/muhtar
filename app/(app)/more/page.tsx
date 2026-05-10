@@ -10,7 +10,7 @@ const FAQS = [
   { q: "How does Muhtar find gifts?", a: "Muhtar sends your recipient profile to our AI, which generates four diverse search queries, scrapes real product listings from Amazon.sa, and selects the four strongest matches with a short reason for each." },
   { q: "Are the prices accurate?", a: "Prices are pulled live at the time of your search. They may change by the time you open the store page — always verify at checkout." },
   { q: "How do credits work?", a: "Every search — gift or comparison — costs 5 credits. New accounts start with 100 free credits. You can buy more any time from your Account page." },
-  { q: "Which stores do you search?", a: "We search Amazon.sa and Noon.com. More Saudi retailers are coming." },
+  { q: "Which stores do you search?", a: "We search Amazon.sa. More Saudi retailers are coming." },
   { q: "Do credits expire?", a: "No. Credits are yours forever once purchased, and they are non-refundable." },
 ];
 
