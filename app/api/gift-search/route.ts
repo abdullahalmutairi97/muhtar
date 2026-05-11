@@ -79,16 +79,18 @@ Always suggest different products each time. Different categories. Prices must r
       return await resolveAmazon(query);
     }));
 
-    const clean: GiftResult[] = slice.map((p, i) => ({
-      id: String(i + 1),
-      name: p.name,
-      price: resolved[i].price ?? Number(p.price),
-      currency: "SAR",
-      store: p.store,
-      url: resolved[i].url,
-      imageUrl: resolved[i].imageUrl,
-      inStock: true,
-    }));
+    const clean: GiftResult[] = slice
+      .map((p, i) => ({
+        id: String(i + 1),
+        name: p.name,
+        price: resolved[i].price ?? Number(p.price),
+        currency: "SAR" as const,
+        store: p.store,
+        url: resolved[i].url,
+        imageUrl: resolved[i].imageUrl,
+        inStock: true,
+      }))
+      .filter((p) => p.price <= budget);
 
     return NextResponse.json(deduplicateProducts(clean));
   } catch (err) {
