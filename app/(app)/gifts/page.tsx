@@ -81,13 +81,13 @@ function GiftCard({ gift, delay }: { gift: GiftResult; delay: number }) {
       )}
       <div className="m-gift-brand">{gift.store}</div>
       <div className="m-gift-name">{gift.name}</div>
-      <div className="m-gift-price">
-        {Math.round(gift.price).toLocaleString("en-SA")} <span style={{ fontSize: "0.7em", fontWeight: 400, opacity: 0.6 }}>SAR</span>
-      </div>
       {gift.inStock === false && (
         <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--fg-4)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Out of stock</div>
       )}
       <div className="m-gift-footer">
+        <span className="m-price-pill">
+          {Math.round(gift.price).toLocaleString("en-SA")} <span style={{ fontSize: "0.8em", opacity: 0.7 }}>SAR</span>
+        </span>
         <a className="m-take-me" href={gift.url} target="_blank" rel="noreferrer">
           Take me there <ArrowOutIcon />
         </a>
