@@ -76,13 +76,7 @@ Always suggest different products each time. Different categories. Prices must r
     // Resolve Amazon products (direct links + images), Noon gets search link + Unsplash image
     const resolved = await Promise.all(slice.map(async (p) => {
       const query = p.searchQuery || p.name;
-      if (p.store === "Amazon.sa") {
-        const { url, imageUrl } = await resolveAmazon(query);
-        return { url, imageUrl };
-      } else {
-        const { url, imageUrl } = await resolveAmazon(query);
-        return { url, imageUrl };
-      }
+      return await resolveAmazon(query);
     }));
 
     const clean: GiftResult[] = slice.map((p, i) => ({
