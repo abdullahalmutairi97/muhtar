@@ -12,7 +12,7 @@ const model = genai?.getGenerativeModel({
   generationConfig: { thinkingConfig: { thinkingBudget: 0 } },
 });
 
-async function resolveAmazon(query: string): Promise<{ url: string; imageUrl: string }> {
+async function resolveAmazon(query: string): Promise<{ url: string; imageUrl: string; price?: number }> {
   const fallback = `https://www.amazon.sa/s?k=${encodeURIComponent(query)}&language=en_AE`;
   try {
     const res = await fetch(
@@ -27,7 +27,29 @@ async function resolveAmazon(query: string): Promise<{ url: string; imageUrl: st
     const imgMatch = html.match(/https:\/\/m\.media-amazon\.com\/images\/I\/[A-Za-z0-9%._-]+\.jpg/);
     const imageUrl = imgMatch ? imgMatch[0] : "";
 
-    return { url: productUrl, imageUrl };
+    // Try to extract real price from the search results page
+    // Amazon renders prices as e.g. "SAR 249.00" or inside price spans
+    let price: number | undefined;
+    const pricePatterns = [
+      // "SAR 1,234.56" or "SAR 123.45"
+      /SAR\s+([\d,]+(?:\.\d{1,2})?)/,
+      // data-a-color="price" span content
+      /"priceAmount":\s*([\d.]+)/,
+      // class="a-price-whole" followed by fraction
+      /"price":\{"value":([\d.]+)/,
+    ];
+    for (const pattern of pricePatterns) {
+      const m = html.match(pattern);
+      if (m) {
+        const parsed = parseFloat(m[1].replace(/,/g, ""));
+        if (!isNaN(parsed) && parsed > 0) {
+          price = parsed;
+          break;
+        }
+      }
+    }
+
+    return { url: productUrl, imageUrl, price };
   } catch {
     return { url: fallback, imageUrl: "" };
   }
@@ -91,7 +113,7 @@ Suggest products actually sold in Saudi Arabia on Amazon.sa.`;
     const clean: GiftResult[] = slice.map((p, i) => ({
       id: String(i + 1),
       name: p.name,
-      price: Number(p.price),
+      price: resolved[i].price ?? Number(p.price),
       currency: "SAR" as const,
       store: p.store,
       url: resolved[i].url,

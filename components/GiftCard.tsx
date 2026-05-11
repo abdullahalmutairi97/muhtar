@@ -45,7 +45,7 @@ export default function GiftCard({
             {gift.name}
           </h3>
           <p className="mt-2 text-lg font-bold text-foreground">
-            {gift.price.toLocaleString("en-SA")}
+            {Math.round(gift.price).toLocaleString("en-SA")}
             <span className="ml-1 text-xs font-normal text-muted-foreground">SAR</span>
           </p>
         </div>
