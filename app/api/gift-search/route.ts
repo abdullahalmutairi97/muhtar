@@ -5,21 +5,6 @@ import type { GiftResult } from "@/types";
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
-async function fetchUnsplashImage(query: string): Promise<string> {
-  if (!process.env.UNSPLASH_ACCESS_KEY) return "";
-  try {
-    const res = await fetch(
-      `https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&orientation=squarish&client_id=${process.env.UNSPLASH_ACCESS_KEY}`,
-      { signal: AbortSignal.timeout(3000) }
-    );
-    if (!res.ok) return "";
-    const data = await res.json() as { urls?: { small?: string } };
-    return data.urls?.small ?? "";
-  } catch {
-    return "";
-  }
-}
-
 async function resolveAmazon(query: string): Promise<{ url: string; imageUrl: string }> {
   const fallback = `https://www.amazon.sa/s?k=${encodeURIComponent(query)}&language=en_AE`;
   try {
@@ -33,11 +18,11 @@ async function resolveAmazon(query: string): Promise<{ url: string; imageUrl: st
     const productUrl = dpMatch ? `https://www.amazon.sa${dpMatch[1].split('"')[0]}` : fallback;
 
     const imgMatch = html.match(/https:\/\/m\.media-amazon\.com\/images\/I\/[A-Za-z0-9%._-]+\.jpg/);
-    const imageUrl = imgMatch ? imgMatch[0] : await fetchUnsplashImage(query);
+    const imageUrl = imgMatch ? imgMatch[0] : "";
 
     return { url: productUrl, imageUrl };
   } catch {
-    return { url: fallback, imageUrl: await fetchUnsplashImage(query) };
+    return { url: fallback, imageUrl: "" };
   }
 }
 
@@ -64,13 +49,13 @@ Recipient: ${gender === "m" ? "Male" : "Female"}, age ${age}, interests: ${(inte
 Each item must have these exact fields:
 - id: "1" to "4"
 - name: real brand + product name
-- price: realistic SAR price (number)
+- price: realistic SAR price (number) — MUST be within 20% of the budget (between ${Math.round(budget * 0.5)} and ${budget} SAR). Never exceed the budget.
 - currency: "SAR"
 - store: "Amazon.sa"
 - searchQuery: short English search query (e.g. "Sony WH-1000XM5 headphones")
 - inStock: true
 
-Always suggest different products each time. Different categories. Realistic Saudi Arabia prices.`;
+Always suggest different products each time. Different categories. Prices must reflect actual Amazon.sa listings.`;
 
     const result = await model.generateContent(prompt);
     const raw = result.response.text().trim()
