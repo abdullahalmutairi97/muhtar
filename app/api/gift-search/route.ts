@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
 Recipient: ${gender === "m" ? "Male" : "Female"}, age ${age}, interests: ${(interests as string[]).join(", ") || "general"}, budget: up to ${budget} SAR.
 
-STRICT RULE: Every single product MUST cost less than ${budget} SAR. Do NOT suggest anything that costs more. If a product category (e.g. KitchenAid, iPhone, etc.) is known to cost more than ${budget} SAR, skip it entirely and pick a cheaper alternative.${(exclude as string[]).length > 0 ? `\nDo NOT suggest any of these already shown products: ${(exclude as string[]).join(", ")}.` : ""}${extra}
+STRICT RULE: Every single product MUST cost less than ${budget} SAR. Do NOT suggest anything that costs more. If a product category (e.g. KitchenAid, iPhone, etc.) is known to cost more than ${budget} SAR, skip it entirely and pick a cheaper alternative.${(exclude as string[]).length > 0 ? `\nDo NOT suggest any of these already shown products: ${(exclude as string[]).slice(-8).join(", ")}.` : ""}${extra}
 
 Each item must have these exact fields:
 - id: "1" to "6"
