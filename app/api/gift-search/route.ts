@@ -5,6 +5,13 @@ import type { GiftResult } from "@/types";
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
+const genai = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
+const model = genai?.getGenerativeModel({
+  model: "gemini-2.5-flash",
+  // @ts-expect-error thinkingConfig not in types yet
+  generationConfig: { thinkingConfig: { thinkingBudget: 0 } },
+});
+
 async function resolveAmazon(query: string): Promise<{ url: string; imageUrl: string }> {
   const fallback = `https://www.amazon.sa/s?k=${encodeURIComponent(query)}&language=en_AE`;
   try {
@@ -26,27 +33,32 @@ async function resolveAmazon(query: string): Promise<{ url: string; imageUrl: st
   }
 }
 
+function parseProducts(text: string, budget: number): Array<GiftResult & { searchQuery?: string }> {
+  const raw = text.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "");
+  const match = raw.match(/\[[\s\S]*\]/);
+  if (!match) throw new Error("No JSON array: " + raw.slice(0, 200));
+  return (JSON.parse(match[0]) as Array<GiftResult & { searchQuery?: string }>)
+    .filter((p) => Number(p.price) <= budget);
+}
 
 export async function POST(req: NextRequest) {
-  if (!process.env.GEMINI_API_KEY) {
+  if (!model) {
     return NextResponse.json({ error: "GEMINI_API_KEY not configured" }, { status: 500 });
   }
 
   try {
     const { gender, age, interests, budget, exclude = [] } = await req.json();
     const seed = Math.random().toString(36).slice(2, 8);
-    const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genai.getGenerativeModel({
-      model: "gemini-2.5-flash",
-      // @ts-expect-error thinkingConfig not in types yet
-      generationConfig: { thinkingConfig: { thinkingBudget: 0 } },
-    });
+
+    const excludeClause = (exclude as string[]).length > 0
+      ? `\nDo NOT suggest any of these already shown products: ${(exclude as string[]).slice(-8).join(", ")}.`
+      : "";
 
     const buildPrompt = (extra = "") => `You are a Saudi Arabia gift expert. Return ONLY a JSON array (no markdown, no explanation) with exactly 6 gift suggestions. Seed: ${seed}
 
 Recipient: ${gender === "m" ? "Male" : "Female"}, age ${age}, interests: ${(interests as string[]).join(", ") || "general"}, budget: up to ${budget} SAR.
 
-STRICT RULE: Every single product MUST cost less than ${budget} SAR. Do NOT suggest anything that costs more. If a product category (e.g. KitchenAid, iPhone, etc.) is known to cost more than ${budget} SAR, skip it entirely and pick a cheaper alternative.${(exclude as string[]).length > 0 ? `\nDo NOT suggest any of these already shown products: ${(exclude as string[]).slice(-8).join(", ")}.` : ""}${extra}
+STRICT RULE: Every single product MUST cost less than ${budget} SAR. Do NOT suggest anything that costs more. If a product category (e.g. KitchenAid, iPhone, etc.) is known to cost more than ${budget} SAR, skip it entirely and pick a cheaper alternative.${excludeClause}${extra}
 
 Each item must have these exact fields:
 - id: "1" to "6"
@@ -59,32 +71,22 @@ Each item must have these exact fields:
 
 Suggest products actually sold in Saudi Arabia on Amazon.sa.`;
 
-    const prompt = buildPrompt();
-
-    const parseProducts = (text: string) => {
-      const raw = text.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "");
-      const match = raw.match(/\[[\s\S]*\]/);
-      if (!match) throw new Error("No JSON array: " + raw.slice(0, 200));
-      return (JSON.parse(match[0]) as Array<GiftResult & { searchQuery?: string }>)
-        .filter((p) => Number(p.price) <= budget);
-    };
-
-    let withinBudget = parseProducts((await model.generateContent(prompt)).response.text());
+    let withinBudget = parseProducts((await model.generateContent(buildPrompt())).response.text(), budget);
 
     if (withinBudget.length < 4) {
       const retry = parseProducts(
-        (await model.generateContent(buildPrompt(` You previously gave items over ${budget} SAR — do NOT do that again.`))).response.text()
+        (await model.generateContent(buildPrompt(` You previously gave items over ${budget} SAR — do NOT do that again.`))).response.text(),
+        budget
       );
-      withinBudget = [...withinBudget, ...retry].filter((p) => Number(p.price) <= budget);
+      withinBudget = [...withinBudget, ...retry];
     }
 
     const slice = withinBudget.slice(0, 4);
     if (slice.length === 0) throw new Error("No products within budget after retry");
 
-    const resolved = await Promise.all(slice.map(async (p) => {
-      const query = p.searchQuery || p.name;
-      return await resolveAmazon(query);
-    }));
+    const resolved = await Promise.all(
+      slice.map((p) => resolveAmazon(p.searchQuery || p.name))
+    );
 
     const clean: GiftResult[] = slice.map((p, i) => ({
       id: String(i + 1),
@@ -104,4 +106,3 @@ Suggest products actually sold in Saudi Arabia on Amazon.sa.`;
     return NextResponse.json({ error: "Search failed — " + msg.slice(0, 200) }, { status: 500 });
   }
 }
-
