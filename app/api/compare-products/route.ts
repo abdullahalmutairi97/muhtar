@@ -77,7 +77,6 @@ IMPORTANT: Respond with ONLY a raw JSON object. No markdown, no code fences.
       }>;
     };
 
-    // Build URLs server-side
     data.products = data.products.map(p => {
       const query = p.searchQuery || `${p.brand} ${p.name}`;
       const urlFn = STORE_URLS[p.store] ?? STORE_URLS["Amazon.sa"];

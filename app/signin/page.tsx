@@ -81,7 +81,6 @@ export default function SignInPage() {
       if (data.isNew) {
         setStep("name");
       } else {
-        // Returning user — log them in directly
         const loginRes = await fetch("/api/auth/create-user", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -253,5 +252,3 @@ export default function SignInPage() {
     </div>
   );
 }
-
-
