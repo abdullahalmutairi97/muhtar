@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { gender, age, interests, budget } = await req.json();
+    const { gender, age, interests, budget, exclude = [] } = await req.json();
     const seed = Math.random().toString(36).slice(2, 8);
     const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genai.getGenerativeModel({
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
 Recipient: ${gender === "m" ? "Male" : "Female"}, age ${age}, interests: ${(interests as string[]).join(", ") || "general"}, budget: up to ${budget} SAR.
 
-STRICT RULE: Every single product MUST cost less than ${budget} SAR. Do NOT suggest anything that costs more. If a product category (e.g. KitchenAid, iPhone, etc.) is known to cost more than ${budget} SAR, skip it entirely and pick a cheaper alternative.${extra}
+STRICT RULE: Every single product MUST cost less than ${budget} SAR. Do NOT suggest anything that costs more. If a product category (e.g. KitchenAid, iPhone, etc.) is known to cost more than ${budget} SAR, skip it entirely and pick a cheaper alternative.${(exclude as string[]).length > 0 ? `\nDo NOT suggest any of these already shown products: ${(exclude as string[]).join(", ")}.` : ""}${extra}
 
 Each item must have these exact fields:
 - id: "1" to "6"

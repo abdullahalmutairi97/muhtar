@@ -5,6 +5,7 @@ export async function searchGifts(params: {
   age: number;
   interests: string[];
   budget: number;
+  exclude?: string[];
 }): Promise<GiftResult[]> {
   const res = await fetch("/api/gift-search", {
     method: "POST",

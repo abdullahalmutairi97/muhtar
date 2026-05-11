@@ -132,6 +132,7 @@ export default function GiftsPage() {
         age: typeof age === "number" ? age : 25,
         interests: interests.split(",").map((s) => s.trim()).filter(Boolean),
         budget,
+        exclude: results ? results.map((r) => r.name) : [],
       });
       clearInterval(interval);
       const deduped = deduplicateProducts(raw);
