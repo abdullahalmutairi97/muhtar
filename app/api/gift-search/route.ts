@@ -42,32 +42,45 @@ export async function POST(req: NextRequest) {
       generationConfig: { thinkingConfig: { thinkingBudget: 0 } },
     });
 
-    const prompt = `You are a Saudi Arabia gift expert. Return ONLY a JSON array (no markdown, no explanation) with exactly 4 gift suggestions. Seed: ${seed}
+    const buildPrompt = (extra = "") => `You are a Saudi Arabia gift expert. Return ONLY a JSON array (no markdown, no explanation) with exactly 6 gift suggestions. Seed: ${seed}
 
 Recipient: ${gender === "m" ? "Male" : "Female"}, age ${age}, interests: ${(interests as string[]).join(", ") || "general"}, budget: up to ${budget} SAR.
 
+STRICT RULE: Every single product MUST cost less than ${budget} SAR. Do NOT suggest anything that costs more. If a product category (e.g. KitchenAid, iPhone, etc.) is known to cost more than ${budget} SAR, skip it entirely and pick a cheaper alternative.${extra}
+
 Each item must have these exact fields:
-- id: "1" to "4"
-- name: real brand + product name
-- price: SAR price as a number — MUST be between ${Math.round(budget * 0.6)} and ${budget}. This is a hard limit. Never suggest a product priced above ${budget} SAR.
+- id: "1" to "6"
+- name: real brand + product name available in Saudi Arabia
+- price: SAR price as a number, strictly under ${budget}
 - currency: "SAR"
 - store: "Amazon.sa"
 - searchQuery: short English search query (e.g. "Sony WH-1000XM5 headphones")
 - inStock: true
 
-Always suggest different products each time. Different categories. Prices must reflect actual Amazon.sa listings.`;
+Suggest products actually sold in Saudi Arabia on Amazon.sa.`;
 
-    const result = await model.generateContent(prompt);
-    const raw = result.response.text().trim()
-      .replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "");
+    const prompt = buildPrompt();
 
-    const match = raw.match(/\[[\s\S]*\]/);
-    if (!match) throw new Error("No JSON array: " + raw.slice(0, 200));
+    const parseProducts = (text: string) => {
+      const raw = text.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "");
+      const match = raw.match(/\[[\s\S]*\]/);
+      if (!match) throw new Error("No JSON array: " + raw.slice(0, 200));
+      return (JSON.parse(match[0]) as Array<GiftResult & { searchQuery?: string }>)
+        .filter((p) => Number(p.price) <= budget);
+    };
 
-    const products = JSON.parse(match[0]) as Array<GiftResult & { searchQuery?: string }>;
-    const slice = products.slice(0, 4);
+    let withinBudget = parseProducts((await model.generateContent(prompt)).response.text());
 
-    // Resolve Amazon products (direct links + images), Noon gets search link + Unsplash image
+    if (withinBudget.length < 4) {
+      const retry = parseProducts(
+        (await model.generateContent(buildPrompt(` You previously gave items over ${budget} SAR — do NOT do that again.`))).response.text()
+      );
+      withinBudget = [...withinBudget, ...retry].filter((p) => Number(p.price) <= budget);
+    }
+
+    const slice = withinBudget.slice(0, 4);
+    if (slice.length === 0) throw new Error("No products within budget after retry");
+
     const resolved = await Promise.all(slice.map(async (p) => {
       const query = p.searchQuery || p.name;
       return await resolveAmazon(query);
