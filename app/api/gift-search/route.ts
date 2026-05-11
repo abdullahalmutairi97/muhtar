@@ -5,7 +5,7 @@ import type { GiftResult } from "@/types";
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
-async function resolveAmazon(query: string): Promise<{ url: string; imageUrl: string }> {
+async function resolveAmazon(query: string): Promise<{ url: string; imageUrl: string; price: number | null }> {
   const fallback = `https://www.amazon.sa/s?k=${encodeURIComponent(query)}&language=en_AE`;
   try {
     const res = await fetch(
@@ -20,9 +20,15 @@ async function resolveAmazon(query: string): Promise<{ url: string; imageUrl: st
     const imgMatch = html.match(/https:\/\/m\.media-amazon\.com\/images\/I\/[A-Za-z0-9%._-]+\.jpg/);
     const imageUrl = imgMatch ? imgMatch[0] : "";
 
-    return { url: productUrl, imageUrl };
+    const priceMatch = html.match(/"priceAmount":"?(\d+(?:\.\d+)?)"?/) ||
+                       html.match(/class="a-price-whole"[^>]*>(\d[\d,]*)</) ||
+                       html.match(/"price":\s*"SAR\s*([\d,.]+)"/) ||
+                       html.match(/SAR\s*([\d,]+\.?\d*)/);
+    const price = priceMatch ? parseFloat(priceMatch[1].replace(/,/g, "")) : null;
+
+    return { url: productUrl, imageUrl, price };
   } catch {
-    return { url: fallback, imageUrl: "" };
+    return { url: fallback, imageUrl: "", price: null };
   }
 }
 
@@ -82,7 +88,7 @@ Always suggest different products each time. Different categories. Prices must r
     const clean: GiftResult[] = slice.map((p, i) => ({
       id: String(i + 1),
       name: p.name,
-      price: Number(p.price),
+      price: resolved[i].price ?? Number(p.price),
       currency: "SAR",
       store: p.store,
       url: resolved[i].url,
