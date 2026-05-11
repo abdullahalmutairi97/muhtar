@@ -5,7 +5,7 @@ import type { GiftResult } from "@/types";
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
-async function resolveAmazon(query: string): Promise<{ url: string; imageUrl: string; price: number | null }> {
+async function resolveAmazon(query: string): Promise<{ url: string; imageUrl: string }> {
   const fallback = `https://www.amazon.sa/s?k=${encodeURIComponent(query)}&language=en_AE`;
   try {
     const res = await fetch(
@@ -20,15 +20,9 @@ async function resolveAmazon(query: string): Promise<{ url: string; imageUrl: st
     const imgMatch = html.match(/https:\/\/m\.media-amazon\.com\/images\/I\/[A-Za-z0-9%._-]+\.jpg/);
     const imageUrl = imgMatch ? imgMatch[0] : "";
 
-    const priceMatch = html.match(/"priceAmount":"?(\d+(?:\.\d+)?)"?/) ||
-                       html.match(/class="a-price-whole"[^>]*>(\d[\d,]*)</) ||
-                       html.match(/"price":\s*"SAR\s*([\d,.]+)"/) ||
-                       html.match(/SAR\s*([\d,]+\.?\d*)/);
-    const price = priceMatch ? parseFloat(priceMatch[1].replace(/,/g, "")) : null;
-
-    return { url: productUrl, imageUrl, price };
+    return { url: productUrl, imageUrl };
   } catch {
-    return { url: fallback, imageUrl: "", price: null };
+    return { url: fallback, imageUrl: "" };
   }
 }
 
@@ -55,7 +49,7 @@ Recipient: ${gender === "m" ? "Male" : "Female"}, age ${age}, interests: ${(inte
 Each item must have these exact fields:
 - id: "1" to "4"
 - name: real brand + product name
-- price: realistic SAR price (number) — MUST be within 20% of the budget (between ${Math.round(budget * 0.5)} and ${budget} SAR). Never exceed the budget.
+- price: SAR price as a number — MUST be between ${Math.round(budget * 0.6)} and ${budget}. This is a hard limit. Never suggest a product priced above ${budget} SAR.
 - currency: "SAR"
 - store: "Amazon.sa"
 - searchQuery: short English search query (e.g. "Sony WH-1000XM5 headphones")
@@ -79,18 +73,16 @@ Always suggest different products each time. Different categories. Prices must r
       return await resolveAmazon(query);
     }));
 
-    const clean: GiftResult[] = slice
-      .map((p, i) => ({
-        id: String(i + 1),
-        name: p.name,
-        price: resolved[i].price ?? Number(p.price),
-        currency: "SAR" as const,
-        store: p.store,
-        url: resolved[i].url,
-        imageUrl: resolved[i].imageUrl,
-        inStock: true,
-      }))
-      .filter((p) => p.price <= budget);
+    const clean: GiftResult[] = slice.map((p, i) => ({
+      id: String(i + 1),
+      name: p.name,
+      price: Number(p.price),
+      currency: "SAR" as const,
+      store: p.store,
+      url: resolved[i].url,
+      imageUrl: resolved[i].imageUrl,
+      inStock: true,
+    }));
 
     return NextResponse.json(deduplicateProducts(clean));
   } catch (err) {
