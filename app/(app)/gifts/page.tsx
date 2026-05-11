@@ -85,10 +85,6 @@ function GiftCard({ gift, delay }: { gift: GiftResult; delay: number }) {
         <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--fg-4)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Out of stock</div>
       )}
       <div className="m-gift-footer">
-        <div className="m-price-pill">
-          <span className="cur">SAR</span>
-          {gift.price.toLocaleString()}
-        </div>
         <a className="m-take-me" href={gift.url} target="_blank" rel="noreferrer">
           Take me there <ArrowOutIcon />
         </a>
